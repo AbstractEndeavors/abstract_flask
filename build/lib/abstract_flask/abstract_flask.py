@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 5621292 (Deploy version 0.0.0.939 at 2025-09-06 21:32:03 UTC)
 import os,sys,unicodedata,hashlib,json
 from abstract_utilities import make_list,get_media_types,get_logFile
 from multiprocessing import Process
@@ -22,9 +18,7 @@ from .request_utils import (dump_if_json,
                             )
 from .network_utils import get_user_ip
 from werkzeug.utils import secure_filename
-<<<<<<< HEAD
-=======
-=======
+
 
 from flask_cors import CORS
 from abstract_utilities import make_list,get_media_types,get_logFile
@@ -51,42 +45,12 @@ def get_name(name=None,abs_path=None):
         name = os.path.splitext(basename)[0]
     abs_path = abs_path or __name__
     return name,abs_path
->>>>>>> 75f0d80 (Deploy version 0.0.0.938 at 2025-09-06 21:27:55 UTC)
->>>>>>> 5621292 (Deploy version 0.0.0.939 at 2025-09-06 21:32:03 UTC)
+
 def jsonify_it(obj):
     if isinstance(obj,dict):
         status_code = obj.get("status_code")
         return jsonify(obj),status_code
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 5621292 (Deploy version 0.0.0.939 at 2025-09-06 21:32:03 UTC)
-def get_bp(name, static_folder=None, static_url_path=None):
-    # if they passed a filename, strip it down to the module name
-    if os.path.isfile(name):
-        basename = os.path.basename(name)
-        name = os.path.splitext(basename)[0]
 
-    bp_name = f"{name}_bp"
-    logger  = get_logFile(bp_name)
-    logger.info(f"Python path: {sys.path!r}")
-
-    # build up only the kwargs they actually gave us
-    bp_kwargs = {}
-    if static_folder is not None:
-        bp_kwargs['static_folder']    = static_folder
-    if static_url_path is not None:
-        bp_kwargs['static_url_path']  = static_url_path
-
-    bp = Blueprint(
-        bp_name,
-        __name__,
-        **bp_kwargs,
-    )
-    return bp, logger
-<<<<<<< HEAD
-=======
-=======
 def get_bp(name=None,abs_path=None, **bp_kwargs):
     # if they passed a filename, strip it down to the module name
     name,abs_path = get_name(name=name,abs_path=abs_path)
@@ -183,5 +147,3 @@ def main_flask_start(app,key_head = '',env_path=None,**kwargs):
         KEY_VALUS[key]=typ(get_env_value(path=env_path,key=nu_key) or default)
         app.run(debug=KEY_VALUS["DEBUG"], host=KEY_VALUS["HOST"], port=KEY_VALUS["PORT"])
 
->>>>>>> 75f0d80 (Deploy version 0.0.0.938 at 2025-09-06 21:27:55 UTC)
->>>>>>> 5621292 (Deploy version 0.0.0.939 at 2025-09-06 21:32:03 UTC)
