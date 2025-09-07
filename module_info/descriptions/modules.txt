@@ -1,0 +1,27 @@
+Imports:
+
+abstract_flask
+abstract_pandas
+abstract_utilities
+file_manager
+flask
+flask_cors
+json
+multiprocessing
+os
+singleton_decorator
+socket
+werkzeug
+
+Module Paths:
+/home/computron/Documents/pythonTools/modules/abstract_flask/src/abstract_flask/Abs_Manager.py
+/home/computron/Documents/pythonTools/modules/abstract_flask/src/abstract_flask/Abs_Manager_dynamic.py
+/home/computron/Documents/pythonTools/modules/abstract_flask/src/abstract_flask/__init__.py
+/home/computron/Documents/pythonTools/modules/abstract_flask/src/abstract_flask/abs_Manager.py
+/home/computron/Documents/pythonTools/modules/abstract_flask/src/abstract_flask/abs_Manager_dynamic.py
+/home/computron/Documents/pythonTools/modules/abstract_flask/src/abstract_flask/abstract_flask.py
+/home/computron/Documents/pythonTools/modules/abstract_flask/src/abstract_flask/directories.py
+/home/computron/Documents/pythonTools/modules/abstract_flask/src/abstract_flask/fileManager.py
+/home/computron/Documents/pythonTools/modules/abstract_flask/src/abstract_flask/file_utils.py
+/home/computron/Documents/pythonTools/modules/abstract_flask/src/abstract_flask/network_tools.py
+/home/computron/Documents/pythonTools/modules/abstract_flask/src/abstract_flask/request_utils.py

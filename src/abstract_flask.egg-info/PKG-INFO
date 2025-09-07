@@ -1,3 +1,34 @@
+Metadata-Version: 2.4
+Name: abstract_flask
+Version: 0.0.0.940
+Summary: Utilities for building Flask apps faster: structured request parsing, safe argument extraction, user/IP introspection, logging helpers, and light-weight file/directory utilities — all packaged as small, composable modules.
+Home-page: https://github.com/AbstractEndeavors/abstract_flask
+Author: putkoff
+Author-email: partners@abstractendeavors.com
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Requires-Dist: abstract_pandas
+Requires-Dist: abstract_queries
+Requires-Dist: abstract_security
+Requires-Dist: abstract_utilities
+Requires-Dist: flask
+Requires-Dist: flask_cors
+Requires-Dist: werkzeug
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
 <<<<<<< HEAD
 =======
 <<<<<<< HEAD

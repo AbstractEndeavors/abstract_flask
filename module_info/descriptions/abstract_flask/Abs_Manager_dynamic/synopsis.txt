@@ -1,0 +1,4 @@
+ in the script: src/abstract_flask/Abs_Manager_dynamic.py
+ dubbed with the title: abstract_flask_v0.0.0.23_Abs_Manager_dynamic_Description
+ was described as: Abs_Manager_dynamic.py is a Python script, part of the abstract_flask package, that provides a dynamic file and directory management functionality. Its primary components include a singleton class, AbsManagerDynamic, and several file utility methods. The script handles directory creation (general bases and user-specific ones), file paths generation, file duplication and transfer, file conversion, file validation and user-data checks. The singleton pattern ensures that the base path directories and the override registry are initialized once and used throughout the script. Along with handling user-specific actions, the script includes methods for clean up and removal of files, saving and reading files, file naming and verifying allowed file types.
+
