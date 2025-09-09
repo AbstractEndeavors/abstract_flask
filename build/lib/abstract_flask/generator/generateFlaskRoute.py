@@ -64,7 +64,7 @@ def find_public_functions(source: str, take_locals: bool = False) -> List[str]:
 def generate_from_files(
     directory: Optional[str] = None,
     files: Optional[Iterable[str]] = None,
-    bp_name: str = "video_data_bp",
+    bp_name: str = "flask_data_bp",
     url_prefix: Optional[str] = None,
     take_locals: bool = False,
     offer_help_block: bool = True,
