@@ -1,5 +1,5 @@
 from abstract_paths import get_files_and_dirs
-from abstract_utilities import read_from_file
+from abstract_utilities import read_from_file,make_list
 def get_end_function(funcName,newFuncName,routName):
     return f"""
 @{rout_name}.route("/{funcName}", methods=["GET", "POST"], strict_slashes=False)
@@ -68,7 +68,7 @@ def generate_from_files(
                            excluded_types=['compression'],
                            unallowed_exts=['pyc'],
                            allowed_exts=['.py'],
-                           excluded_dirs=['__init__','node_modules'])
+                           excluded_patterns=['__init__','node_modules'])
         
     files = make_list(files)
     pyDatas = []
