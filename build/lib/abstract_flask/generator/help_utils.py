@@ -1,6 +1,6 @@
 import inspect
 from flask import jsonify
-
+from ..request_utils import get_request_data
 def offer_help(*functions, data=None, req=None):
     """
     Inspect function signatures and return JSON help if 'help' is in request data.
