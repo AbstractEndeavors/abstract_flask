@@ -29,7 +29,7 @@ def get_ends(routName=None,url_prefix=None):
         url_prefix = f",url_prefix='/{url_prefix}'"
     else:
         url_prefix = ""
-    return ["""from abstract_flask import *
+    return [f"""from abstract_flask import *
 solar_units_bp = Blueprint('{routName}', __name__{urlPrefix})
 logger = get_logFile('{routName}')"""]
 
