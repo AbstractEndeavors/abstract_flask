@@ -53,7 +53,7 @@ def get_all_functions(
                 newName+=init
             func_string = get_end_function(func_name,newName,routName)
             ends.append(func_string)
-     return ends
+        return ends
 def generate_from_files(
     directory=None,
     files=None,
