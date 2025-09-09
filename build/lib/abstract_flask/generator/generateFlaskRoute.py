@@ -25,7 +25,7 @@ solar_units_bp = Blueprint('{routName}', __name__{urlPrefix})
 logger = get_logFile('{routName}')"""]
 
 def get_all_functions(
-    text,
+    texts,
     routName=None,
     url_prefix=None,
     take_locals=False
