@@ -17,6 +17,7 @@ src/abstract_flask/file_utils/imports.py
 src/abstract_flask/file_utils/request_files.py
 src/abstract_flask/generator/__init__.py
 src/abstract_flask/generator/generateFlaskRoute.py
+src/abstract_flask/generator/help_utils.py
 src/abstract_flask/network_utils/__init__.py
 src/abstract_flask/network_utils/imports.py
 src/abstract_flask/network_utils/ip_utils.py

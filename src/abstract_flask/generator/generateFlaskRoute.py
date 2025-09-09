@@ -1,19 +1,28 @@
 from abstract_paths import get_files_and_dirs
 from abstract_utilities import read_from_file,make_list
-def get_end_function(funcName,newFuncName,routName):
+
+def get_end_function(funcName,newFuncName,routName,offer_help=True):
+    if offer_help:
+       offer_help=f""" 
+    help_offered = offer_help({funcName}, data=data, req=request)
+    if help_offered:
+        return help_offered\n"""
+    else:
+        offer_help = ""
     return f"""
-@{rout_name}.route("/{funcName}", methods=["GET", "POST"], strict_slashes=False)
-@{rout_name}.route("/{funcName}/", methods=["GET", "POST"], strict_slashes=False)
+@{routName}.route("/{funcName}", methods=["GET", "POST"], strict_slashes=False)
+@{routName}.route("/{funcName}/", methods=["GET", "POST"], strict_slashes=False)
 def {newFuncName}(*args,**kwargs):
     data = get_request_data(request)
+    {offer_help}
     try:
+        
         response = {funcName}(**data)
         if response == None:
             return jsonify({{"error": "no response"}}), 400
         return jsonify({{'result': response}}), 200
     except Exception as e:
-        return jsonify({{'error': f"{{e}}"}}), 500
-    """
+        return jsonify({{'error': f"{{e}}"}}), 500"""
 def get_ends(routName=None,url_prefix=None):
     routName = routName or 'flaskRoute_bp'
     if url_prefix:
@@ -53,7 +62,7 @@ def get_all_functions(
                 newName+=init
             func_string = get_end_function(func_name,newName,routName)
             ends.append(func_string)
-        return ends
+    return ends
 def generate_from_files(
     directory=None,
     files=None,
@@ -68,16 +77,21 @@ def generate_from_files(
                            excluded_types=['compression'],
                            unallowed_exts=['pyc'],
                            allowed_exts=['.py'],
-                           excluded_patterns=['__init__','node_modules'])
+                           excluded_patterns=['__init__','node_modules'],
+                                        recursive=True)
         
     files = make_list(files)
+
     pyDatas = []
     for file in files:
         pyDatas.append(read_from_file(file))
     pyData = '\n'.join(pyDatas)
+
     return get_all_functions(
         pyData,
         routName=routName,
         url_prefix=url_prefix,
         take_locals=take_locals
         )
+
+
