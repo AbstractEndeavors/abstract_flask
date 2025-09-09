@@ -24,7 +24,12 @@ def get_ends(routName=None,url_prefix=None):
 solar_units_bp = Blueprint('{routName}', __name__{urlPrefix})
 logger = get_logFile('{routName}')"""]
 
-def get_all_functions(text,routName=None,url_prefix=None,take_locals=False):
+def get_all_functions(
+    text,
+    routName=None,
+    url_prefix=None,
+    take_locals=False
+    ):
     lines = texts.split('\n')
     ends = get_ends(routName)
     for i,line in enumerate(lines):
@@ -49,7 +54,13 @@ def get_all_functions(text,routName=None,url_prefix=None,take_locals=False):
             func_string = get_end_function(func_name,newName,routName)
             ends.append(func_string)
    return ends
-def generate_from_files(directory=None,files=None,directories=None,take_locals=False):
+def generate_from_files(
+    directory=None,
+    files=None,
+    directories=None,
+    routName=None,
+    url_prefix=None,
+    take_locals=False):
     directories = directories or directory
     if directories:
         dirs,files = get_files_and_dirs(make_list(directories),
