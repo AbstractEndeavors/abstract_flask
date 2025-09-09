@@ -1,3 +1,5 @@
+from abstract_paths import get_files_and_dirs
+from abstract_utilities import read_from_file
 def get_end_function(funcName,newFuncName,routName):
     return f"""
 @{rout_name}.route("/{funcName}", methods=["GET", "POST"], strict_slashes=False)
@@ -22,7 +24,7 @@ def get_ends(routName=None,url_prefix=None):
 solar_units_bp = Blueprint('{routName}', __name__{urlPrefix})
 logger = get_logFile('{routName}')"""]
 
-def get_all_functions(text,routName=None,url_prefix=None):
+def get_all_functions(text,routName=None,url_prefix=None,take_locals=False):
     lines = texts.split('\n')
     ends = get_ends(routName)
     for i,line in enumerate(lines):
@@ -31,6 +33,8 @@ def get_all_functions(text,routName=None,url_prefix=None):
             func_def = func_parts[0]
             func_right = '('.join(func_parts[1:])
             func_name = func_def.split(' ')[1]
+            if func_name.startswith('_') and not take_locals:
+                break
             pieces = func_name.split('_')
             newName=''
             for piece in pieces:
@@ -44,5 +48,25 @@ def get_all_functions(text,routName=None,url_prefix=None):
                 newName+=init
             func_string = get_end_function(func_name,newName,routName)
             ends.append(func_string)
-        lines[i] = line
    return ends
+def generate_from_files(directory=None,files=None,directories=None,take_locals=False):
+    directories = directories or directory
+    if directories:
+        dirs,files = get_files_and_dirs(make_list(directories),
+                           excluded_dirs = '__init__,node_modules'.split(','),
+                           excluded_types=['compression'],
+                           unallowed_exts=['pyc'],
+                           allowed_exts=['.py'],
+                           excluded_dirs=['__init__','node_modules'])
+        
+    files = make_list(files)
+    pyDatas = []
+    for file in files:
+        pyDatas.append(read_from_file(file))
+    pyData = '\n'.join(pyDatas)
+    return get_all_functions(
+        pyData,
+        routName=routName,
+        url_prefix=url_prefix,
+        take_locals=take_locals
+        )
