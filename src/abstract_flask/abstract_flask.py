@@ -32,6 +32,11 @@ from werkzeug.utils import secure_filename
 import os,sys,unicodedata,hashlib,json,logging
 from abstract_security import get_env_value    
 logger = get_logFile('abstract_flask')
+def register_bps(app,bp_list):
+    for bp in bp_list:
+        app.register_blueprint(bp)
+    return app
+from flask_cors import CORS
 def get_from_kwargs(keys,**kwargs):
     output_js = {}
     for key in keys:
@@ -76,25 +81,23 @@ class RequestFormatter(logging.Formatter):
             record.remote_addr = None
             record.user = None
         return super().format(record)
+
+
+
 def addHandler(app: Flask, *, name: str | None = None) -> Flask:
-    # ---- short-circuit if we've already been here ---------
     if getattr(app, "_endpoints_registered", False):
         return app
-    app._endpoints_registered = True               # mark as done
-    # -------------------------------------------------------
+    app._endpoints_registered = True
 
     name = name or os.path.splitext(os.path.basename(__file__))[0]
-    
-    # ---- audit logger -------------------------------------
+
+    # ---- audit logger ----
     audit_path  = f"{name}.log"
-    audit_fmt   = RequestFormatter(
-        "%(asctime)s %(remote_addr)s %(user)s %(message)s"
-    )
     audit_hdlr  = logging.FileHandler(audit_path)
-    audit_hdlr.setFormatter(audit_fmt)
+    audit_hdlr.setFormatter(RequestFormatter("%(asctime)s %(remote_addr)s %(user)s %(message)s"))
     app.logger.addHandler(audit_hdlr)
 
-    # ---- request hooks ------------------------------------
+    # ---- request hooks ----
     @app.before_request
     def record_ip_for_authenticated_user():
         if getattr(request, "user", None):
@@ -102,9 +105,9 @@ def addHandler(app: Flask, *, name: str | None = None) -> Flask:
             if user:
                 log_user_ip(user["id"], request.remote_addr)
 
-    # ---- single, multi-method route -----------------------
-    if "getEnds" not in app.view_functions:        # extra belt-and-braces
-        @app.route("/api/endpoints", methods=["GET", "POST"])
+    # ---- /api/endpoints ----
+    if "getEnds" not in app.view_functions:
+        @app.route("/api/endpoints", methods=["OPTIONS", "GET", "POST"])
         def getEnds():
             endpoints = [
                 (rule.rule, ", ".join(sorted(rule.methods - {"HEAD", "OPTIONS"})))
@@ -114,36 +117,48 @@ def addHandler(app: Flask, *, name: str | None = None) -> Flask:
 
     return app
 
-def register_bps(app,bp_list):
-    for bp in bp_list:
-        app.register_blueprint(bp)
-    return app
-def get_Flask_app(*args,**kwargs):
-    """Quart app factory."""
-    keys = ['name','bp_list']
-    values , kwargs = get_from_kwargs(keys,**kwargs)
-    name = values.get('name')
-    bp_list = values.get('bp_list')
+def get_Flask_app(*args, **kwargs):
+    keys = ["name", "bp_list"]
+    values, kwargs = get_from_kwargs(keys, **kwargs)
+    name = values.get("name")
+    bp_list = values.get("bp_list")
     for arg in args:
-        if not name and not isinstance(arg,list):
+        if not name and not isinstance(arg, list):
             name = arg
         elif not bp_list:
             bp_list = arg
     bp_list = bp_list or []
-    name,abs_path = get_name(name)
-    app = Flask(name,**kwargs)
-    app = addHandler(app,name=name)
-    app = register_bps(app,bp_list)
-    return app
-def main_flask_start(app,key_head = '',env_path=None,**kwargs):
-    key_head = key_head.upper()
-    KEY_VALUS = {"DEBUG":{"type":bool,"default":True},
-             "HOST":{"type":str,"default":'0.0.0.0'},
-             "PORT":{"type":int,"default":True}}
-    for key,values in KEY_VALUS.iteems():
-        nu_key = f"{key_head}_{key}"
-        typ = values.get("type")
-        default = values.get("default")
-        KEY_VALUS[key]=typ(get_env_value(path=env_path,key=nu_key) or default)
-        app.run(debug=KEY_VALUS["DEBUG"], host=KEY_VALUS["HOST"], port=KEY_VALUS["PORT"])
+    name, abs_path = get_name(name)
 
+    app = Flask(name, **kwargs)
+    app = addHandler(app, name=name)
+    app = register_bps(app, bp_list)
+
+    # 🔑 make CORS default-friendly
+    CORS(
+        app,
+        resources={r"*": {"origins": "*"}},
+        supports_credentials=True,
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
+    return app
+
+def main_flask_start(app, key_head="", env_path=None, **kwargs):
+    key_head = key_head.upper()
+    KEY_VALUES = {
+        "DEBUG": {"type": bool, "default": True},
+        "HOST": {"type": str, "default": "0.0.0.0"},
+        "PORT": {"type": int, "default": 5000},  # fixed
+    }
+    for key, values in KEY_VALUES.items():
+        nu_key = f"{key_head}_{key}"
+        typ = values["type"]
+        default = values["default"]
+        KEY_VALUES[key] = typ(get_env_value(path=env_path, key=nu_key) or default)
+
+    app.run(
+        debug=KEY_VALUES["DEBUG"],
+        host=KEY_VALUES["HOST"],
+        port=KEY_VALUES["PORT"],
+    )
