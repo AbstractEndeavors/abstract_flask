@@ -116,6 +116,13 @@ def get_args_jwargs_user_req(req,var_types={}):
    result = extract_request_data(req)
    data = result.get('json', {})
    args = result.get('args', [])
-   username = result.get('user')
+   usernames = result.get('user')
+   username = None
+   if isinstance(usernames,tuple):
+      for arg in usernames:
+         if arg:
+            username = arg
+            break
+      
    data = get_spec_kwargs(var_types, args,**data)
    return data,args,username
