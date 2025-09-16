@@ -104,25 +104,25 @@ def addHandler(app: Flask, *, name: str | None = None) -> Flask:
 
     return app
 
-def get_Flask_app(*, name="abstract_flask", bp_list=None, allowed_origins=None, **kwargs) -> Flask:
-    app = Flask(name, **kwargs)
-    addHandler(app, name=name)
+def get_Flask_app(*, name="abstract_flask", bp_list=None, allowed_origins=None, **kwargs):
+    if "allowed_origins" in kwargs:
+        allowed_origins = kwargs.pop("allowed_origins")
 
-    # default: allow all origins unless specified
+    app = Flask(name, **kwargs)
+
+    # Ensure CORS is applied globally
     CORS(
         app,
-        resources={r"*": {"origins": allowed_origins or "*"}},
+        resources={r"/*": {"origins": allowed_origins or "*"}},
         supports_credentials=True,
-        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
 
-    if bp_list:
-        for bp in bp_list:
-            app.register_blueprint(bp)
+    app = addHandler(app, name=name)
+    app = register_bps(app, bp_list or [])
 
     return app
-
 def main_flask_start(app, key_head="", env_path=None, **kwargs):
     key_head = key_head.upper()
     KEY_VALUES = {
