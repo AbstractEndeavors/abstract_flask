@@ -114,15 +114,7 @@ def get_spec_kwargs(var_types: Dict[str, Dict[str, Any]], args: list = None, **k
     return result
 def get_args_jwargs_user_req(req,var_types={}):
    result = extract_request_data(req)
-   data = result.get('json', {})
+   username = result.get('user')
    args = result.get('args', [])
-   usernames = result.get('user')
-   username = None
-   if isinstance(usernames,tuple):
-      for arg in usernames:
-         if arg:
-            username = arg
-            break
-      
-   data = get_spec_kwargs(var_types, args,**data)
+   data = result.get('json')
    return data,args,username
