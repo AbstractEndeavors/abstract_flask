@@ -72,8 +72,7 @@ def get_bp(name=None,abs_path=None, **bp_kwargs):
 class RequestFormatter(logging.Formatter):
     def format(self, record):
         if has_request_context():
-            # `request` is the current flask.Request proxy
-            ip_addr = get_ip_addr(req=request)
+            ip_addr = request.remote_addr
             user = USER_IP_MGR.get_user_by_ip(ip_addr)
             record.remote_addr = ip_addr
             record.user = user
@@ -82,8 +81,6 @@ class RequestFormatter(logging.Formatter):
             record.user = None
         return super().format(record)
 
-
-
 def addHandler(app: Flask, *, name: str | None = None) -> Flask:
     if getattr(app, "_endpoints_registered", False):
         return app
@@ -91,57 +88,39 @@ def addHandler(app: Flask, *, name: str | None = None) -> Flask:
 
     name = name or os.path.splitext(os.path.basename(__file__))[0]
 
-    # ---- audit logger ----
-    audit_path  = f"{name}.log"
-    audit_hdlr  = logging.FileHandler(audit_path)
+    # logger
+    audit_hdlr = logging.FileHandler(f"{name}.log")
     audit_hdlr.setFormatter(RequestFormatter("%(asctime)s %(remote_addr)s %(user)s %(message)s"))
     app.logger.addHandler(audit_hdlr)
 
-    # ---- request hooks ----
-    @app.before_request
-    def record_ip_for_authenticated_user():
-        if getattr(request, "user", None):
-            user = get_user_by_username(request.user["username"])
-            if user:
-                log_user_ip(user["id"], request.remote_addr)
-
-    # ---- /api/endpoints ----
-    if "getEnds" not in app.view_functions:
-        @app.route("/api/endpoints", methods=["OPTIONS", "GET", "POST"])
-        def getEnds():
-            endpoints = [
-                (rule.rule, ", ".join(sorted(rule.methods - {"HEAD", "OPTIONS"})))
-                for rule in app.url_map.iter_rules()
-            ]
-            return jsonify(sorted(endpoints)), 200
+    # /api/endpoints
+    @app.route("/api/endpoints", methods=["OPTIONS", "GET", "POST"])
+    def getEnds():
+        endpoints = [
+            (rule.rule, ", ".join(sorted(rule.methods - {"HEAD", "OPTIONS"})))
+            for rule in app.url_map.iter_rules()
+        ]
+        return jsonify(sorted(endpoints)), 200
 
     return app
 
-def get_Flask_app(*args, **kwargs):
-    keys = ["name", "bp_list"]
-    values, kwargs = get_from_kwargs(keys, **kwargs)
-    name = values.get("name")
-    bp_list = values.get("bp_list")
-    for arg in args:
-        if not name and not isinstance(arg, list):
-            name = arg
-        elif not bp_list:
-            bp_list = arg
-    bp_list = bp_list or []
-    name, abs_path = get_name(name)
-
+def get_Flask_app(*, name="abstract_flask", bp_list=None, allowed_origins=None, **kwargs) -> Flask:
     app = Flask(name, **kwargs)
-    app = addHandler(app, name=name)
-    app = register_bps(app, bp_list)
+    addHandler(app, name=name)
 
-    # 🔑 make CORS default-friendly
+    # default: allow all origins unless specified
     CORS(
         app,
-        resources={r"*": {"origins": "*"}},
+        resources={r"*": {"origins": allowed_origins or "*"}},
         supports_credentials=True,
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
     )
+
+    if bp_list:
+        for bp in bp_list:
+            app.register_blueprint(bp)
+
     return app
 
 def main_flask_start(app, key_head="", env_path=None, **kwargs):
@@ -149,7 +128,7 @@ def main_flask_start(app, key_head="", env_path=None, **kwargs):
     KEY_VALUES = {
         "DEBUG": {"type": bool, "default": True},
         "HOST": {"type": str, "default": "0.0.0.0"},
-        "PORT": {"type": int, "default": 5000},  # fixed
+        "PORT": {"type": int, "default": 5000},
     }
     for key, values in KEY_VALUES.items():
         nu_key = f"{key_head}_{key}"
