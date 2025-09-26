@@ -116,5 +116,5 @@ def get_args_jwargs_user_req(req,var_types={}):
    result = extract_request_data(req)
    username = result.get('user')
    args = result.get('args', [])
-   data = result.get('json')
+   data = result.get('json',{})
    return data,args,username

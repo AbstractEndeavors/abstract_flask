@@ -81,11 +81,11 @@ class RequestFormatter(logging.Formatter):
             record.user = None
         return super().format(record)
 
-def addHandler(app: Flask, *, name: str | None = None) -> Flask:
+def addHandler(app: Flask, *, name: str | None = None,url_prefix=None) -> Flask:
     if getattr(app, "_endpoints_registered", False):
         return app
     app._endpoints_registered = True
-
+    url_prefix = url_prefixor 'api'
     name = name or os.path.splitext(os.path.basename(__file__))[0]
 
     # logger
@@ -94,7 +94,7 @@ def addHandler(app: Flask, *, name: str | None = None) -> Flask:
     app.logger.addHandler(audit_hdlr)
 
     # /api/endpoints
-    @app.route("/api/endpoints", methods=["OPTIONS", "GET", "POST"])
+    @app.route(f"/{url_prefix}/endpoints", methods=["OPTIONS", "GET", "POST"])
     def getEnds():
         endpoints = [
             (rule.rule, ", ".join(sorted(rule.methods - {"HEAD", "OPTIONS"})))
@@ -104,7 +104,7 @@ def addHandler(app: Flask, *, name: str | None = None) -> Flask:
 
     return app
 
-def get_Flask_app(*, name="abstract_flask", bp_list=None, allowed_origins=None, **kwargs):
+def get_Flask_app(*, name="abstract_flask", bp_list=None, allowed_origins=None,url_prefix=None, **kwargs):
     if "allowed_origins" in kwargs:
         allowed_origins = kwargs.pop("allowed_origins")
 
@@ -119,7 +119,7 @@ def get_Flask_app(*, name="abstract_flask", bp_list=None, allowed_origins=None, 
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
 
-    app = addHandler(app, name=name)
+    app = addHandler(app, name=name,url_prefix=url_prefix)
     app = register_bps(app, bp_list or [])
 
     return app
