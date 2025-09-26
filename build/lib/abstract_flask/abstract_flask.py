@@ -85,7 +85,7 @@ def addHandler(app: Flask, *, name: str | None = None,url_prefix=None) -> Flask:
     if getattr(app, "_endpoints_registered", False):
         return app
     app._endpoints_registered = True
-    url_prefix = url_prefixor 'api'
+    url_prefix = url_prefix or 'api'
     name = name or os.path.splitext(os.path.basename(__file__))[0]
 
     # logger
