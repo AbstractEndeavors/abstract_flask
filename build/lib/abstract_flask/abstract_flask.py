@@ -32,9 +32,18 @@ from werkzeug.utils import secure_filename
 import os,sys,unicodedata,hashlib,json,logging
 from abstract_security import get_env_value    
 logger = get_logFile('abstract_flask')
-def register_bps(app,bp_list):
-    for bp in bp_list:
-        app.register_blueprint(bp)
+def register_bps(app, bp_list):
+    """
+    bp_list can be either:
+    - [Blueprint, Blueprint, ...]
+    - [(Blueprint, "/prefix"), (Blueprint, "/prefix2"), ...]
+    """
+    for entry in bp_list:
+        if isinstance(entry, tuple):
+            bp, prefix = entry
+            app.register_blueprint(bp, url_prefix=prefix)
+        else:
+            app.register_blueprint(entry)
     return app
 from flask_cors import CORS
 def get_from_kwargs(keys,**kwargs):
@@ -104,7 +113,8 @@ def addHandler(app: Flask, *, name: str | None = None,url_prefix=None) -> Flask:
 
     return app
 
-def get_Flask_app(*, name="abstract_flask", bp_list=None, allowed_origins=None,url_prefix=None, **kwargs):
+def get_Flask_app(*, name="abstract_flask", bp_list=None,
+                  allowed_origins=None, url_prefix=None, **kwargs):
     if "allowed_origins" in kwargs:
         allowed_origins = kwargs.pop("allowed_origins")
 
@@ -119,10 +129,13 @@ def get_Flask_app(*, name="abstract_flask", bp_list=None, allowed_origins=None,u
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
 
-    app = addHandler(app, name=name,url_prefix=url_prefix)
+    app = addHandler(app, name=name, url_prefix=url_prefix)
+
+    # pass the list of blueprints (with optional prefixes)
     app = register_bps(app, bp_list or [])
 
     return app
+
 def main_flask_start(app, key_head="", env_path=None, **kwargs):
     key_head = key_head.upper()
     KEY_VALUES = {
