@@ -1,5 +1,5 @@
 import os,sys,unicodedata,hashlib,json
-from abstract_utilities import make_list,get_media_types,get_logFile
+from abstract_utilities import make_list,get_media_types,get_logFile,eatAll
 from multiprocessing import Process
 from flask import (
     Blueprint,
@@ -103,7 +103,7 @@ def addHandler(app: Flask, *, name: str | None = None,url_prefix=None) -> Flask:
     app.logger.addHandler(audit_hdlr)
 
     # /api/endpoints
-    @app.route(f"/{url_prefix}/endpoints", methods=["OPTIONS", "GET", "POST"])
+    @app.route(f"/{eatAll(url_prefix,'/')}/endpoints", methods=["OPTIONS", "GET", "POST"])
     def getEnds():
         endpoints = [
             (rule.rule, ", ".join(sorted(rule.methods - {"HEAD", "OPTIONS"})))
