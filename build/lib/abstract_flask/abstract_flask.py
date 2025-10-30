@@ -113,21 +113,30 @@ def addHandler(app: Flask, *, name: str | None = None,url_prefix=None) -> Flask:
 
     return app
 
-def get_Flask_app(*, name="abstract_flask", bp_list=None,
-                  allowed_origins=None, url_prefix=None, **kwargs):
+def get_Flask_app(*, name="abstract_flask",
+                  bp_list=None,
+                  allowed_origins=None,
+                  url_prefix=None,
+                  supports_credentials=None,
+                  **kwargs
+                  ):
     if "allowed_origins" in kwargs:
         allowed_origins = kwargs.pop("allowed_origins")
-
+    if "supports_credentials" in kwargs:
+        supports_credentials = kwargs.pop("supports_credentials")
+    allowed_origins = allowed_origins or "*"
+    supports_credentials = supports_credentials or False
     app = Flask(name, **kwargs)
 
     # Ensure CORS is applied globally
     CORS(
         app,
-        resources={r"/*": {"origins": allowed_origins or "*"}},
-        supports_credentials=True,
+        resources={r"/*": {"origins":allowed_origins}},
+        supports_credentials=supports_credentials,  # 👈 disable credentials for wildcard
         allow_headers=["Authorization", "Content-Type"],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
+
 
     app = addHandler(app, name=name, url_prefix=url_prefix)
 
