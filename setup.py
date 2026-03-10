@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 setuptools.setup(
     name='abstract_flask',
-    version='0.0.0.976',
+    version='0.0.0.1015',
     author='putkoff',
     author_email='partners@abstractendeavors.com',
     description="Utilities for building Flask apps faster: structured request parsing, safe argument extraction, user/IP introspection, logging helpers, and light-weight file/directory utilities — all packaged as small, composable modules.",
@@ -18,8 +18,16 @@ setuptools.setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.11',
     ],
-    install_requires=['abstract_pandas' , 'abstract_queries' , 'abstract_security' ,
-                      'abstract_utilities' , 'flask' , 'flask_cors' ,'werkzeug'],
+    install_requires=[
+        'abstract_pandas' ,
+        'abstract_queries' ,
+        'abstract_security' ,
+        'abstract_utilities' ,
+        'flask' ,
+        'flask_cors' ,
+        'werkzeug',
+        'psycopg[binary]'
+        ],
     package_dir={"": "src"},
     packages=setuptools.find_packages(where="src"),
     python_requires=">=3.6",

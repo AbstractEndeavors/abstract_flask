@@ -5,3 +5,4 @@ abstract_utilities
 flask
 flask_cors
 werkzeug
+psycopg[binary]

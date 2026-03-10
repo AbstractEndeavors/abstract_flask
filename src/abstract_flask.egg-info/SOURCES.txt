@@ -30,3 +30,4 @@ src/abstract_flask/request_utils/request_utils.py
 src/abstract_flask/user_utils/__init__.py
 src/abstract_flask/user_utils/imports.py
 src/abstract_flask/user_utils/user_utils.py
+tests/test.py

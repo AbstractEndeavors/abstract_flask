@@ -7,6 +7,7 @@ from .imports import (
     Dict,
     Any
     )
+from abstract_apis.endpoint_utils import *
 def dump_if_json(obj):
     if isinstance(obj,dict) or isinstance(obj,list):
         try:
@@ -176,12 +177,7 @@ def extract_request_data(
     except Exception as e:
         print(f"Error in extract_request_data: {e}")
         return None
-def get_request_data(req):
-    """Retrieve JSON data (for POST) or query parameters (for GET)."""
-    if req.method == 'POST':
-        return req.json
-    else:
-        return req.args.to_dict()
+
 def get_request_data(req):
     """
     Returns a dict from:
@@ -205,3 +201,7 @@ def get_request_data(req):
 
     # Nothing found
     return {}
+def get_request_datas(req):
+    """Wrapper that converts numeric fields."""
+    data = get_request_data(req)
+    return {k: make_number(v) for k, v in data.items()}

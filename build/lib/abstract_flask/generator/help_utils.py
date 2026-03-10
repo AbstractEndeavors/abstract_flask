@@ -1,34 +1,55 @@
 import inspect
 from flask import jsonify
 from ..request_utils import get_request_data
+
+
 def offer_help(*functions, data=None, req=None):
     """
-    Inspect function signatures and return JSON help if 'help' is in request data.
+    Returns a JSON help response when the user requests '?help' or {"help": ...}.
+    Inspects each function signature and provides docstrings + parameter metadata.
     """
-    if not data and not req:
+
+    # no request context or data → nothing to offer
+    if data is None and req is None:
         return None
 
-    # Collect request data
+    # normalize data
     data = data or get_request_data(req)
 
-    if "help" not in data:
-        return None  # only respond with help if requested
+    # detect help flag in JSON or GET query params
+    help_requested = (
+        ("help" in data) or
+        (req is not None and req.args.get("help") is not None)
+    )
+    if not help_requested:
+        return None
 
-    nuParams = {}
+    help_payload = {}
+
     for fn in functions:
-        func_name = fn.__name__  # <-- get the function name
-        sig = inspect.signature(fn)
+        # Only process actual callables
+        if not callable(fn):
+            continue
 
-        nuParams[func_name] = {
-            "doc": inspect.getdoc(fn),
-            "params": []
-        }
+        fn_name = getattr(fn, "__name__", "<unknown>")
+        sig = inspect.signature(fn)
+        doc = inspect.getdoc(fn)
+
+        params_list = []
 
         for name, param in sig.parameters.items():
-            nuParams[func_name]["params"].append({
+            default_val = None if param.default is inspect._empty else param.default
+            annotation = None if param.annotation is inspect._empty else str(param.annotation)
+
+            params_list.append({
                 "name": name,
-                "default": None if param.default is inspect._empty else param.default,
-                "annotation": None if param.annotation is inspect._empty else str(param.annotation)
+                "default": default_val,
+                "annotation": annotation
             })
 
-    return jsonify(nuParams), 200
+        help_payload[fn_name] = {
+            "doc": doc,
+            "params": params_list
+        }
+
+    return jsonify(help_payload), 200
