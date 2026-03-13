@@ -123,7 +123,6 @@ def register_route(bp: Blueprint, category: str, route_name: str, func: Callable
         try:
             logger.info(f"data == {data}")
             pruned = prune_inputs(func, **data)
-            logger.info(f"pruned_inputs == {pruned}")
             args, kwargs = normalize_pruned_inputs(pruned)
             response = await call_maybe_async(func, *args, **kwargs)
             if response is None:
