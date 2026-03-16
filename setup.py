@@ -4,10 +4,10 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 setuptools.setup(
     name='abstract_flask',
-    version='0.0.0.1017',
+    version='0.0.0.1018',
     author='putkoff',
     author_email='partners@abstractendeavors.com',
-    description="Utilities for building Flask apps faster: structured request parsing, safe argument extraction, user/IP introspection, logging helpers, and light-weight file/directory utilities — all packaged as small, composable modules.",
+    description="A composable toolkit for standing up Flask APIs without repeating yourself. Handles blueprint discovery, CORS, request parsing, endpoint introspection, and route generation — so the only code you write is the code that matters.",
     long_description=long_description,
     long_description_content_type='text/markdown',
     url="https://github.com/AbstractEndeavors/abstract_flask",
@@ -24,7 +24,7 @@ setuptools.setup(
         'abstract_security' ,
         'abstract_utilities' ,
         'flask' ,
-        'flask_cors' ,
+        'flask_cors',
         'werkzeug',
         'psycopg[binary]'
         ],

@@ -1,210 +1,144 @@
----
-# Abstract Flask
+# abstract_flask
 
-[![PyPI version](https://img.shields.io/pypi/v/abstract_flask.svg)](https://pypi.org/project/abstract_flask/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python Versions](https://img.shields.io/pypi/pyversions/abstract_flask.svg)](https://pypi.org/project/abstract_flask/)
+A composable toolkit for standing up Flask APIs without repeating yourself. Handles blueprint discovery, CORS, request parsing, endpoint introspection, and route generation — so the only code you write is the code that matters.
 
-Utilities for building **Flask apps faster**: structured request parsing, safe argument extraction, user/IP introspection, logging helpers, and light-weight file/directory utilities — all packaged as small, composable modules.
-
-**Version:** `0.0.0.23`  
-**Status:** Alpha  
-**License:** MIT  
-**Author:** putkoff · partners@abstractendeavors.com  
-**Repository:** [github.com/AbstractEndeavors/abstract_flask](https://github.com/AbstractEndeavors/abstract_flask)
-
----
-
-## Why Abstract Flask?
-
-Most Flask projects re-implement the same glue: normalize request data (query/form/JSON), validate keys, coerce types, find the caller’s user or IP, wire in basic logging, and juggle upload/download/process folders.  
-
-**Abstract Flask** provides these as **small, composable utilities** you can import as needed — without forcing a project layout or framework.
-
----
-
-## ✨ Features
-
-- **Robust request parsing**
-  - Unified access to JSON, form, and query data.
-  - Required key validation and case-insensitive matching.
-  - Convert positional args into typed kwargs with defaults.
-
-- **Execution helpers**
-  - Run a function with validated request data and return consistent `{result|error, status_code}` envelopes.
-
-- **User/IP introspection**
-  - Get authenticated user or resolve user by IP.
-  - Extract complete request metadata (`headers`, `cookies`, `files`, etc.).
-
-- **Blueprint & app tooling**
-  - App factory with built-in request logging.
-  - `/api/endpoints` route for quick endpoint discovery.
-
-- **File & directory helpers**
-  - Manage uploads, downloads, conversions, and user-specific directories with singleton managers.
-  - Validate file extensions and safely move/copy files.
-
-- **Network helpers**
-  - Discover host IP with safe fallback to `127.0.0.1`.
-
----
-
-## 📦 Installation
+## Install
 
 ```bash
 pip install abstract_flask
-````
-
-### Dependencies
-
-**Core requirements:**
-
-* `flask`
-* `flask_cors`
-* `werkzeug`
-* `abstract_utilities`
-* `abstract_pandas`
-
-**Optional integrations:**
-
-* `abstract_queries` — for user/IP resolution.
-* `abstract_security` — for environment-driven config (`main_flask_start`).
-
----
-
-## 🚀 Quickstart
-
-```python
-from abstract_flask.abstract_flask import get_Flask_app, get_bp
-from abstract_flask.request_utils.request_utils import extract_request_data
-from flask import jsonify
-
-# 1) Create a Blueprint
-bp, _logger = get_bp(name="example")
-
-@bp.route("/hello", methods=["GET", "POST"])
-def hello():
-    data = extract_request_data(request)
-    return jsonify({"message": "hi", "data": data}), 200
-
-# 2) Create the app and register Blueprints
-app = get_Flask_app(name="demo_app", bp_list=[bp])
-
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
 ```
 
----
-
-## 📚 Core Modules
-
-### Request utilities (`abstract_flask.request_utils`)
-
-* `extract_request_data(req, res_type='all')`
-* `get_request_info(req, res_type='user'|'ip_addr')`
-* `get_request_data(req)`
-* `required_keys(keys, req, defaults=None)`
-* `get_only_kwargs(varList, *args, **kwargs)`
-* `get_proper_kwargs(strings, **kwargs)`
-* `get_spec_kwargs(var_types, args=None, **kwargs)`
-* `execute_request(keys, req, func, desired_keys=None, defaults=None)`
-
-### App helpers (`abstract_flask.abstract_flask`)
-
-* `get_bp(name, abs_path=None)` → `(Blueprint, logger)`
-* `addHandler(app, name=None)` → app with audit logging
-* `get_Flask_app(name, bp_list=None, **kwargs)` → ready-to-run Flask app
-* `jsonify_it(obj)` → `(jsonify(obj), status_code)`
-* `/api/endpoints` → discover routes
-
-### File utilities (`abstract_flask.file_utils`)
-
-* `fileManager` (singleton, allowed extensions)
-* `AbsManager` & `AbsManagerDynamic` (directory management)
-* Helpers for uploads, downloads, conversions, per-user dirs.
-
-### Network utilities (`abstract_flask.network_utils`)
-
-* Safe host IP detection with fallback.
-
----
-
-## 🧪 Examples
-
-### Validate keys & execute a function
+## Quickstart
 
 ```python
-from abstract_flask.request_utils.get_requests import execute_request
+# my_api/__init__.py
+from . import routes
+from abstract_flask import get_Flask_app
 
-def add(a: int, b: int) -> int:
-    return a + b
-
-@app.route("/add", methods=["GET", "POST"])
-def add_endpoint():
-    result = execute_request(
-        keys=["a", "b"],
-        req=request,
-        func=add,
-        desired_keys=["a", "b"],
-        defaults={"a": 0, "b": 0}
-    )
-    return jsonify(result), result.get("status_code", 200)
+app = get_Flask_app(routes=routes, allowed_origins=["https://yourdomain.com"])
 ```
 
-### Typed arg shaping with defaults
+That's it. Blueprints are discovered from any `*_bp` objects in your `routes` module, CORS is applied, and introspection endpoints are registered automatically.
+
+### Full signature
 
 ```python
-from abstract_flask.request_utils.get_requests import get_spec_kwargs
-
-spec = {
-  "query": {"value": "",   "type": str},
-  "limit": {"value": 25,   "type": int},
-  "exact": {"value": False,"type": bool},
-}
-
-@app.route("/search", methods=["POST"])
-def search():
-    data = request.get_json(silent=True) or {}
-    shaped = get_spec_kwargs(spec, [], **data)
-    return jsonify(shaped)
+app = get_Flask_app(
+    name="my_api",              # Flask app name (default: caller's __name__)
+    routes=routes,              # module to scan for *_bp Blueprints
+    bp_list=None,               # or pass blueprints explicitly
+    url_prefix="v1",            # prefix for blueprint registration + filtered /endpoints
+    allowed_origins=["https://example.com"],
+    supports_credentials=True,
+)
 ```
 
----
+### Running
 
-## ⚠️ Known Quirks
+```python
+from abstract_flask import main_flask_start
 
-* `main_flask_start` has typos (`iteems`, `KEY_VALUS`, default `PORT=True`). Fix before production.
-* Docstring of `get_Flask_app` says “Quart” but it’s Flask.
-* `get_request_data` is defined twice in `request_utils.py`; use the second implementation.
-* Optional features rely on `abstract_queries` and `abstract_security`.
+main_flask_start(app, key_head="MYAPI", env_path=".env")
+# reads MYAPI_DEBUG, MYAPI_HOST, MYAPI_PORT from env
+```
 
----
+## Package structure
 
-## 🔧 Compatibility
+```
+abstract_flask/
+├── abstract_flask.py        # App factory, CORS, audit logging, introspection
+├── request_utils/
+│   ├── request_utils.py     # get_request_data, extract_request_data
+│   ├── get_requests.py      # required_keys, execute_request, get_spec_kwargs
+│   └── parse_utils.py       # parse_request, parse_and_spec_vars
+├── network_utils/
+│   └── ip_utils.py          # get_host_ip, get_user_ip, get_ip_addr
+├── user_utils/
+│   └── user_utils.py        # get_user_name (from request or fallback)
+└── generator/
+    ├── generateFlaskRoute.py # Auto-generate Flask routes from Python files
+    └── help_utils.py         # ?help introspection for any endpoint
+```
 
-* **Python:** ≥ 3.6 (tested up to 3.11)
-* **Flask:** Any modern 2.x release
+## Core modules
 
----
+### App factory (`abstract_flask.py`)
 
-## 🤝 Contributing
+| Function | Purpose |
+|---|---|
+| `get_Flask_app(...)` | One-call app factory: blueprints, CORS, logging, introspection |
+| `get_bp(name, abs_path)` | Create a named Blueprint with a logger |
+| `main_flask_start(app)` | Run the app using env-driven host/port/debug |
 
-Contributions welcome!
+Every app gets these endpoints for free:
 
-1. Fork the repo.
-2. Create a branch (`feat/your-feature`).
-3. Add tests/examples.
-4. Open a pull request.
+- `GET /endpoints` — all registered routes
+- `GET /<prefix>/endpoints` — routes under that prefix
+- `GET /prefixes` — unique top-level route segments
 
-Issues and PRs are tracked on GitHub: [AbstractEndeavors/abstract\_flask](https://github.com/AbstractEndeavors/abstract_flask).
+### Request utilities (`request_utils/`)
 
----
+```python
+from abstract_flask.request_utils import get_request_data, required_keys, parse_request
+```
 
-## 📄 License
+- **`get_request_data(req)`** — Returns a dict from JSON body, form data, or query string (checked in that order).
+- **`extract_request_data(req, res_type)`** — Full extraction: user, IP, headers, cookies, files, metadata. Pass `res_type` to narrow scope.
+- **`required_keys(keys, req, defaults)`** — Validate that required keys are present; returns the data dict or a 400 error payload.
+- **`parse_request(req)`** — Split a request into positional `args` and `kwargs`.
+- **`get_spec_kwargs(var_types, args, **kwargs)`** — Type-coerced argument extraction against a schema.
 
-MIT © Abstract Endeavors / putkoff
+### Route generator (`generator/`)
 
+Auto-generate Flask endpoints from plain Python files:
 
+```python
+from abstract_flask.generator import generate_from_files
 
----
+source = generate_from_files(
+    directory="./my_functions",
+    bp_name="auto_bp",
+    url_prefix="generated",
+)
+```
+
+Every public function becomes a `GET/POST` endpoint. Async functions are preserved. Pass `?help` to any generated endpoint to get parameter introspection via `offer_help`.
+
+Register routes programmatically against an existing blueprint:
+
+```python
+from abstract_flask.generator import register_category
+
+register_category(bp, "math", {
+    "add": lambda a, b: a + b,
+    "multiply": lambda a, b: a * b,
+})
+# creates /math/add, /math/multiply
+```
+
+### Network utilities (`network_utils/`)
+
+```python
+from abstract_flask.network_utils import get_host_ip, get_user_ip
+```
+
+### User utilities (`user_utils/`)
+
+```python
+from abstract_flask.user_utils import get_user_name
+```
+
+Resolves username from the request's `.user` attribute, falling back to IP-based lookup via `UserIPManager`.
+
+## Dependencies
+
+- `flask`, `flask_cors`, `werkzeug`
+- `abstract_utilities`, `abstract_security`, `abstract_queries`
+
+## License
+
+MIT
+
+## Author
+
+[putkoff](https://github.com/AbstractEndeavors) — partners@abstractendeavors.com
