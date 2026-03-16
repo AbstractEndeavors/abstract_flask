@@ -11,6 +11,8 @@ src/abstract_flask.egg-info/SOURCES.txt
 src/abstract_flask.egg-info/dependency_links.txt
 src/abstract_flask.egg-info/requires.txt
 src/abstract_flask.egg-info/top_level.txt
+src/abstract_flask/app_utils/__init__.py
+src/abstract_flask/app_utils/blueprint_parser.py
 src/abstract_flask/file_utils/__init__.py
 src/abstract_flask/file_utils/file_utils.py
 src/abstract_flask/file_utils/imports.py
