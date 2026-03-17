@@ -193,6 +193,7 @@ def get_Flask_app(*,
                   url_prefix_endpoint_name=None,
                   allowed_origins=None,
                   supports_credentials=None,
+                  debug=None,
                   **flask_kwargs):
     """
     Minimal call:
@@ -216,7 +217,8 @@ def get_Flask_app(*,
         bp_list = _discover_blueprints(routes, url_prefix)
 
     app = Flask(name, **flask_kwargs)
-
+    if debug is not None:
+        app.debug = debug
     _apply_cors(app, allowed_origins=allowed_origins,
                 supports_credentials=supports_credentials)
     _attach_audit_log(app, name=name)
