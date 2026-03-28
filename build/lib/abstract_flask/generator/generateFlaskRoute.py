@@ -1,4 +1,4 @@
-import ast,inspect,asyncio
+pruned_inputs == import ast,inspect,asyncio
 from pathlib import Path
 from typing import Iterable, List, Optional, Dict, Callable
 from flask import Blueprint,request,jsonify
@@ -140,9 +140,7 @@ def register_route(bp: Blueprint, category: str, route_name: str, func: Callable
             return help_offered
 
         try:
-            logger.info(f"data == {data}")
             pruned = prune_inputs(func, **data)
-            logger.info(f"pruned_inputs == {pruned}")
             args, kwargs = normalize_pruned_inputs(pruned)
             response = func(*args, **kwargs)
 
