@@ -3,6 +3,8 @@ from flask import Flask, request, flash, redirect
 from werkzeug.utils import secure_filename
 from abstract_utilities import *
 from abstract_utilities import derive_media_type
+from flask import request as flask_request # Rename to avoid local variable conflict
+
 logger = get_logFile(__name__)
 UPLOAD_FOLDER = 'uploads'
 def get_ext(file_path):
@@ -105,27 +107,42 @@ def save_flask_uploaded_file(req,file_storage,upload_dir=None,upload_path=None) 
     file_storage.save(output_path)
     return str(output_path)
 
-def upload_flask_files(upload_dir=None,upload_path=None):
-    # 1. Access multiple files from the client request
-    files = request.files.getlist('files')
+
+
+
+def upload_flask_files(req=None, upload_dir=None, upload_path=None):
+    # 1. Resolve which request object to use
+    # If req is passed, use it. Otherwise, fall back to the Flask global.
+    req = req or flask_request
+    
+    # 2. Access multiple files using the resolved 'req'
+    files = req.files.getlist('files')
+    
     logger.info(f"files= {files}")
     if not files or files[0].filename == '':
         return {"message": "No files selected", "status_code": 400}, 400
 
     file_chart = {
-        "ip": request.remote_addr,
+        "ip": req.remote_addr, # Use resolved req
         "time": time.time(),
         "files": {}
     }
+    
     try:
-
         for file in files:
-            logger.info(file)
-            # Important: is_allowed_file needs the filename string
+            logger.info(f"Processing: {file.filename}")
+            
             if file and is_allowed_file(file.filename):
-                # save_uploaded_image handles the directory creation and naming
-                saved_path_str = save_flask_uploaded_file(request, file,upload_dir=upload_dir,upload_path=upload_path)
-                logger.info(saved_path_str)
+                # Pass the resolved 'req' down to your save helper
+                saved_path_str = save_flask_uploaded_file(
+                    req, 
+                    file, 
+                    upload_dir=upload_dir, 
+                    upload_path=upload_path
+                )
+                
+                logger.info(f"Saved to: {saved_path_str}")
+                
                 # Log metadata
                 file_chart["files"][file.filename] = {
                     "time": time.time(),
@@ -138,4 +155,5 @@ def upload_flask_files(upload_dir=None,upload_path=None):
         return {"uploads": file_chart, "message": "Batch upload successful", "status_code": 200}, 200
 
     except Exception as e:
+        logger.error(f"Upload error: {str(e)}")
         return {"message": str(e), "status_code": 500}, 500
