@@ -2,11 +2,12 @@ import os
 from flask import Flask, request, flash, redirect
 from werkzeug.utils import secure_filename
 from abstract_utilities import *
-from abstract_utilities import derive_media_type
+from abstract_utilities import derive_media_type,
 from flask import request as flask_request # Rename to avoid local variable conflict
 
 logger = get_logFile(__name__)
 UPLOAD_FOLDER = 'uploads'
+MEDIA_TYPES = list(MIME_TYPES.keys())
 def get_ext(file_path):
     return os.path.splitext(str(file_path))[-1]
 class UPOLOADMANAGER(metaclass=SingletonMeta):
@@ -31,7 +32,7 @@ class UPOLOADMANAGER(metaclass=SingletonMeta):
     def get_media_type(self,file_path):
         ext = os.path.splitext(str(file_path))[-1]
         if ext:
-            return derive_media_type(ext)
+            return derive_media_type(file_path)
     def is_allowed_ext(self,obj):
         ext = get_ext(str(obj))
         return ext and ext in self.allowed_exts
@@ -157,3 +158,6 @@ def upload_flask_files(req=None, upload_dir=None, upload_path=None):
     except Exception as e:
         logger.error(f"Upload error: {str(e)}")
         return {"message": str(e), "status_code": 500}, 500
+
+
+
