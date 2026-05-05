@@ -2,7 +2,7 @@ import os
 from flask import Flask, request, flash, redirect
 from werkzeug.utils import secure_filename
 from abstract_utilities import *
-from abstract_utilities import derive_media_type,
+from abstract_utilities import derive_media_type
 from flask import request as flask_request # Rename to avoid local variable conflict
 
 logger = get_logFile(__name__)
