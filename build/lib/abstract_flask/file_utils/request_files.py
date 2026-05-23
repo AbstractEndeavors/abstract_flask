@@ -1,6 +1,6 @@
 from .imports import secure_filename
 from flask import request
-import os
+import os,tempfile
 def get_request_files(req=None):
     return req.files
 def get_request_file(req=None,request_file=None):
