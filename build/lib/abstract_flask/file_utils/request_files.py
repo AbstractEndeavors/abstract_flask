@@ -1,5 +1,5 @@
 from .imports import secure_filename
-import request
+from flask import request
 def get_request_files(req=None):
     return req.files
 def get_request_file(req=None,request_file=None):
