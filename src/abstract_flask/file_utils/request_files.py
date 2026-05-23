@@ -1,4 +1,4 @@
-from .imports import secure_filename
+from .imports import *
 def get_request_files(req=None):
     return req.files
 def get_request_file(req=None,request_file=None):
@@ -61,3 +61,4 @@ def cleanup_req_file(req_file):
 def get_b64_path(path):
     with open(tmp_path, "rb") as f:
         return base64.b64encode(f.read()).decode("ascii")
+
