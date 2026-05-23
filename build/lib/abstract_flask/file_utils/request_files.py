@@ -1,6 +1,4 @@
 from .imports import secure_filename
-from flask import request
-import os,tempfile
 def get_request_files(req=None):
     return req.files
 def get_request_file(req=None,request_file=None):
@@ -28,8 +26,8 @@ def get_user_filename(req=None):
     safe_subdir = get_safe_subdir(req=req)
     safe_filename = get_request_safe_filename(req=req)
     return filename
-def get_req_file():
-    upload = request.files.get("files")
+def get_req_file(req=None):
+    upload = req.files.get("files")
     if upload is None:
         raise ValueError("No uploaded file received. Expected multipart field 'files'.")
     suffix = os.path.splitext(upload.filename or "")[1]
