@@ -26,11 +26,38 @@ def get_user_filename(req=None):
     safe_subdir = get_safe_subdir(req=req)
     safe_filename = get_request_safe_filename(req=req)
     return filename
-def get_req_file(req=None):
-    upload = req.files.get("files")
+
+def get_req_file(field_name="files"):
+    source = {}
+
+    if request.form.get("source"):
+        source = json.loads(request.form["source"])
+
+    upload = request.files.get(field_name)
+
     if upload is None:
-        raise ValueError("No uploaded file received. Expected multipart field 'files'.")
+        raise ValueError(
+            f"No uploaded file received. Expected multipart field '{field_name}'."
+        )
+
     suffix = os.path.splitext(upload.filename or "")[1]
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         upload.save(tmp.name)
-        return tmp.name
+        tmp_path = tmp.name
+
+    return {
+        "tmp_path": tmp_path,
+        "source": source,
+        "filename": upload.filename or os.path.basename(tmp_path),
+        "mime_type": upload.mimetype or "application/octet-stream",
+        "field_name": field_name,
+    }
+def cleanup_req_file(req_file):
+    tmp_path = req_file.get("tmp_path")
+    if tmp_path and os.path.exists(tmp_path):
+        os.remove(tmp_path)
+        
+def get_b64_path(path):
+    with open(tmp_path, "rb") as f:
+        return base64.b64encode(f.read()).decode("ascii")
