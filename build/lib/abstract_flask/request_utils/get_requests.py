@@ -1,5 +1,6 @@
 from .request_utils import get_request_data,extract_request_data
 from .imports import makeParams,get_desired_key_values
+import uuid
 async def async_makeParams(*arg,**kwargs):
    return makeParams(*arg,**kwargs)
 def required_keys(keys,req,defaults=None):
@@ -119,12 +120,7 @@ def get_args_jwargs_user_req(req,var_types={}):
    data = result.get('json',{})
    return data,args,username
 
+def get_request_id()
+   return str(uuid.uuid4())
 
-def get_req_file():
-    upload = request.files.get("files")
-    if upload is None:
-        raise ValueError("No uploaded file received. Expected multipart field 'files'.")
-    suffix = os.path.splitext(upload.filename or "")[1]
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        upload.save(tmp.name)
-        return tmp.name
+

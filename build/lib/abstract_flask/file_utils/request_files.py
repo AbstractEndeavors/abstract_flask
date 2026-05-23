@@ -1,4 +1,5 @@
 from .imports import secure_filename
+import request
 def get_request_files(req=None):
     return req.files
 def get_request_file(req=None,request_file=None):
@@ -26,3 +27,11 @@ def get_user_filename(req=None):
     safe_subdir = get_safe_subdir(req=req)
     safe_filename = get_request_safe_filename(req=req)
     return filename
+def get_req_file():
+    upload = request.files.get("files")
+    if upload is None:
+        raise ValueError("No uploaded file received. Expected multipart field 'files'.")
+    suffix = os.path.splitext(upload.filename or "")[1]
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        upload.save(tmp.name)
+        return tmp.name
