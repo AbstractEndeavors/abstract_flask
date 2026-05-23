@@ -120,7 +120,7 @@ def get_args_jwargs_user_req(req,var_types={}):
    data = result.get('json',{})
    return data,args,username
 
-def get_request_id()
+def get_request_id():
    return str(uuid.uuid4())
 
 
