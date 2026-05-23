@@ -1,10 +1,10 @@
-import os
+import os,json,uuid
 from flask import Flask, request, flash, redirect
 from werkzeug.utils import secure_filename
 from abstract_utilities import *
 from abstract_utilities import derive_media_type
 from flask import request as flask_request # Rename to avoid local variable conflict
-
+from pathlib import Path
 logger = get_logFile(__name__)
 UPLOAD_FOLDER = 'uploads'
 MEDIA_TYPES = list(MIME_TYPES.keys())
@@ -38,8 +38,15 @@ class UPOLOADMANAGER(metaclass=SingletonMeta):
         return ext and ext in self.allowed_exts
     def is_allowed_file(self,obj):
         return self.is_allowed_ext(obj)
-    def get_user_folder(self,req):
-        user_ip = req.remote_addr
+    def get_user_folder(self, req):
+        # Check if the request was forwarded by a proxy
+        if req.headers.getlist("X-Forwarded-For"):
+            user_ip = req.headers.getlist("X-Forwarded-For")[0].split(',')[0]
+        else:
+            user_ip = req.remote_addr
+        
+        # Fallback to 'unknown' if IP is missing or local loopback in dev
+        user_ip = user_ip or "unknown"
         return os.path.join(self.upload_folder, user_ip.replace('.', '_'))
     def get_upload_dir(self, req, file_storage,upload_dir=None,upload_path=None):
         if upload_dir:
@@ -154,7 +161,7 @@ def upload_flask_files(req=None, upload_dir=None, upload_path=None):
                 return {"message": f"File {file.filename} type not allowed", "status_code": 400}, 400
                 
         return {"uploads": file_chart, "message": "Batch upload successful", "status_code": 200}, 200
-
+    
     except Exception as e:
         logger.error(f"Upload error: {str(e)}")
         return {"message": str(e), "status_code": 500}, 500

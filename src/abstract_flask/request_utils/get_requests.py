@@ -118,3 +118,13 @@ def get_args_jwargs_user_req(req,var_types={}):
    args = result.get('args', [])
    data = result.get('json',{})
    return data,args,username
+
+
+def get_req_file():
+    upload = request.files.get("files")
+    if upload is None:
+        raise ValueError("No uploaded file received. Expected multipart field 'files'.")
+    suffix = os.path.splitext(upload.filename or "")[1]
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        upload.save(tmp.name)
+        return tmp.name
