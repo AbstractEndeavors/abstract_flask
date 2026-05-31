@@ -1,7 +1,7 @@
 import ast,inspect,asyncio
 from pathlib import Path
 from typing import Iterable, List, Optional, Dict, Callable
-from flask import Blueprint,request,jsonify
+from flask import Blueprint,request,jsonify,Response
 from .help_utils import offer_help
 from ..request_utils import get_request_data,get_request_datas
 from abstract_utilities import is_number,get_logFile,run_pruned_func,prune_inputs
@@ -10,6 +10,9 @@ from abstract_utilities import is_number,get_logFile,run_pruned_func,prune_input
 # ============================================================
 # Helpers
 # ============================================================
+def is_flask_response(value):
+    return isinstance(value, Response)
+
 def _format_helper_funcs(helper_funcs: list[str]) -> str:
     """
     Format helper function names for code generation.
@@ -116,17 +119,25 @@ def register_route(bp: Blueprint, category: str, route_name: str, func: Callable
     helper_funcs = helper_funcs or []
     async def async_route_func(*_, **__):
         data = get_request_datas(request)
-        help_offered = offer_help(func,*helper_funcs, data=data, req=request)
+        help_offered = offer_help(func, *helper_funcs, data=data, req=request)
+
         if help_offered:
             return help_offered
 
         try:
             logger.info(f"data == {data}")
+
             pruned = prune_inputs(func, **data)
             args, kwargs = normalize_pruned_inputs(pruned)
+
             response = await call_maybe_async(func, *args, **kwargs)
+
             if response is None:
                 return jsonify({"error": "no response"}), 400
+
+            if is_flask_response(response):
+                return response
+
             return jsonify({"result": response}), 200
 
         except Exception as e:
@@ -135,17 +146,23 @@ def register_route(bp: Blueprint, category: str, route_name: str, func: Callable
 
     def sync_route_func(*_, **__):
         data = get_request_datas(request)
-        help_offered = offer_help(func,*helper_funcs, data=data, req=request)
+        help_offered = offer_help(func, *helper_funcs, data=data, req=request)
+
         if help_offered:
             return help_offered
 
         try:
             pruned = prune_inputs(func, **data)
             args, kwargs = normalize_pruned_inputs(pruned)
+
             response = func(*args, **kwargs)
 
             if response is None:
                 return jsonify({"error": "no response"}), 400
+
+            if is_flask_response(response):
+                return response
+
             return jsonify({"result": response}), 200
 
         except Exception as e:
