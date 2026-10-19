@@ -1,5 +1,7 @@
 # abstract_flask
 
+The staged bundle provides `ops.sh ACTION [--plan]` and `scripts/*.sh` for local Python installs and PyPI/GitHub push paths. Its Python source and `pyproject.toml` are at this directory's root.
+
 A composable toolkit for standing up Flask APIs without repeating yourself. Handles blueprint discovery, CORS, request parsing, endpoint introspection, and route generation — so the only code you write is the code that matters.
 
 ## Install
@@ -142,3 +144,30 @@ MIT
 ## Author
 
 [putkoff](https://github.com/AbstractEndeavors) — partners@abstractendeavors.com
+## Declarative Flask route schema
+
+`get_Flask_app` accepts a nested route dictionary directly. Callable leaves keep
+its original GET/POST and `{ "result": ... }` response convention. A route spec
+leaf can describe exact Flask behavior:
+
+```python
+from abstract_flask import get_Flask_app
+
+routes = {"fleet": {"worker": {
+    "view": worker_detail,
+    "rule": "/fleet/workers/<worker_id>",
+    "methods": ["GET"],
+    "inputs": "path",       # or "merged" for query/form/JSON plus URL variables
+    "response": "native", # or "result" for the original response wrapper
+}}}
+app = get_Flask_app(name="fleet", routes=routes, dual_prefix="/api")
+```
+
+A spec may use `rules` for several URL aliases and `endpoint` to name the
+Flask endpoint. `strict_slashes` defaults to `False`; set it to `True` when
+migrating an exact existing URL contract. Native responses preserve Flask
+responses, status tuples, streaming responses, and ordinary dictionaries.
+URL variables take precedence over submitted fields in `merged` input mode.
+
+An arm entry point in `arms_group` may export a route dictionary as well as a
+Blueprint. The factory creates and mounts its Blueprint automatically.

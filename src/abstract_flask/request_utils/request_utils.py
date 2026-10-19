@@ -59,7 +59,11 @@ def extract_request_data(
     req: Optional[Request] = None,
     res_type: str = 'all',
     user_manager: Optional[UserManager] = None,
-    ip_manager: Optional[UserIPManager] = None
+    ip_manager: Optional[UserIPManager] = None,
+    default = None,
+    force=True,
+    silent=True,
+    flat=True
 ) -> Optional[Dict[str, Any]]:
     """
     Extract all available data from a Flask request, including user, IP, query params, 
@@ -137,7 +141,7 @@ def extract_request_data(
         if res_type in ('all', 'json'):
             try:
                 if req.is_json:
-                    result['json'] = req.get_json(silent=True) or {}
+                    result['json'] = req.get_json(silent=silent) or {}
             except Exception:
                 result['json'] = {}
 
@@ -172,13 +176,13 @@ def extract_request_data(
         if res_type != 'all':
             return result.get(res_type)
 
-        return result if result else None
+        return result if result else default
 
     except Exception as e:
         print(f"Error in extract_request_data: {e}")
-        return None
+        return default
 
-def get_request_data(req):
+def get_request_data(req,default = {},force=True, silent=True,flat=True):
     """
     Returns a dict from:
      1) JSON body (regardless of Content-Type),
@@ -187,21 +191,43 @@ def get_request_data(req):
     in that order.
     """
     # 1) Try JSON body, ignore headers if not valid JSON
-    json_data = req.get_json(force=True, silent=True)
+    default = default or {}
+    json_data = req.get_json(force=force, silent=silent)
     if isinstance(json_data, dict) and json_data:
         return json_data
 
     # 2) Try form POST data
     if req.form and req.form.to_dict():
-        return req.form.to_dict(flat=True)
+        return req.form.to_dict(flat=flat)
 
     # 3) Finally, try query string
     if req.args and req.args.to_dict():
-        return req.args.to_dict(flat=True)
+        return req.args.to_dict(flat=flat)
 
     # Nothing found
-    return {}
+    return default
+def make_number(value):
+    """Convert to int/float if numeric."""
+    from ..imports import is_number
+    if is_number(value):
+        if '.' in str(value):
+            return float(value)
+        return int(value)
+    return value
 def get_request_datas(req):
-    """Wrapper that converts numeric fields."""
+    """Wrapper that converts numeric fields. Also unwraps the MCP-bridge
+    envelope {"kwargs": "<json object string>"} so bridged calls reach the
+    tool with real parameters instead of a stray kwargs= keyword."""
     data = get_request_data(req)
+    kw = data.get("kwargs")
+    if isinstance(kw, str) and kw.strip().startswith("{"):
+        try:
+            import json as _json
+            parsed = _json.loads(kw)
+        except ValueError:
+            parsed = None
+        if isinstance(parsed, dict):
+            data = {**parsed, **{k: v for k, v in data.items() if k != "kwargs"}}
+    elif isinstance(kw, dict):
+        data = {**kw, **{k: v for k, v in data.items() if k != "kwargs"}}
     return {k: make_number(v) for k, v in data.items()}

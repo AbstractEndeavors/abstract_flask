@@ -1,4 +1,4 @@
-import os,json,uuid
+import os,json,uuid,time
 from flask import Flask, request, flash, redirect
 from werkzeug.utils import secure_filename
 from ..imports import *
@@ -7,6 +7,10 @@ from pathlib import Path
 logger = get_logFile(__name__)
 UPLOAD_FOLDER = 'uploads'
 MEDIA_TYPES = list(MIME_TYPES.keys())
+def get_media_exts(categories=None):
+    """Extensions for media categories (abstract_utilities is the owner)."""
+    from abstract_utilities import get_media_exts as _get_media_exts
+    return _get_media_exts(categories=categories)
 def get_ext(file_path):
     return os.path.splitext(str(file_path))[-1]
 class UPOLOADMANAGER(metaclass=SingletonMeta):

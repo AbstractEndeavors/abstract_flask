@@ -1,3 +1,40 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "abstract-flask"
+version = "0.0.0.1063"
+description = "A composable toolkit for standing up Flask APIs without repeating yourself."
+readme = "README.md"
+requires-python = ">=3.6"
+license = "MIT"
+
+authors = [
+    { name = "putkoff", email = "partners@abstractendeavors.com" }
+]
+
+dependencies = [
+    "flask",
+    "flask-cors",
+    "werkzeug",
+    "abstract-essentials",
+    "abstract-apis",
+    "abstract-queries",
+    "abstract-utilities>=0.2.2.794"
+]
+
+[project.optional-dependencies]
+users = [
+    "psycopg[binary]"
+]
+aiohttp = [
+    "aiohttp"
+]
+
+[project.urls]
+Homepage = "https://github.com/AbstractEndeavors/abstract_flask"
+Repository = "https://github.com/AbstractEndeavors/abstract_flask"
+
+[tool.setuptools.packages.find]
+where = ["src"]

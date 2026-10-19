@@ -1,6 +1,7 @@
 import inspect
 import logging
 import os
+import re
 import sys
 
 from flask import Blueprint, Flask, jsonify, request, has_request_context
@@ -24,13 +25,80 @@ def get_name(name=None, abs_path=None):
     return name, abs_path
 
 
+def bp_name_for(name):
+    """The blueprint/logger name for ``name``, carrying the ``_bp`` convention.
+
+    The suffix marks blueprint objects and their per-blueprint log files so they
+    are easy to identify and grep. It is applied **idempotently**: a name that
+    already ends in ``_bp`` is left alone, so ``get_bp("math_bp")`` yields
+    ``math_bp`` (not the old doubled ``math_bp_bp``) while ``get_bp("settings")``
+    still yields ``settings_bp``.
+    """
+    base = "flask" if name in (None, "") else str(name)
+    return base if base.endswith("_bp") else f"{base}_bp"
+
+
 def get_bp(name=None, abs_path=None, **bp_kwargs):
     name, abs_path = get_name(name=name, abs_path=abs_path)
-    bp_name = f"{name}_bp"
+    bp_name = bp_name_for(name)
     bp_logger = get_logFile(bp_name)
     bp_logger.info(f"Python path: {sys.path!r}")
     bp = Blueprint(bp_name, abs_path, **bp_kwargs)
     return bp, bp_logger
+
+
+def load_entrypoint_blueprints(group):
+    """Every Blueprint published to an entry-point ``group`` (each guarded).
+
+    Lets optional packages plug a blueprint into an app by declaring it in an
+    entry-point group (e.g. ``hugpy.arms``); a broken/absent one only logs."""
+    out = []
+    try:
+        from importlib.metadata import entry_points
+    except Exception:  # noqa: BLE001
+        return out
+    for ep in entry_points(group=group):
+        try:
+            bp = ep.load()
+            if isinstance(bp, Blueprint):
+                out.append(bp)
+            elif isinstance(bp, dict):
+                from .generator.generateFlaskRoute import register_categories
+                name = re.sub(r"[^A-Za-z0-9_]", "_", ep.name)
+                schema_bp, _ = get_bp(name, ep.module)
+                register_categories(schema_bp, bp)
+                out.append(schema_bp)
+            else:
+                logger.warning("entry point %r is %s, not a Blueprint or route schema",
+                               ep.name, type(bp).__name__)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("entry point %r (%s) not loaded: %r", ep.name, ep.value, exc)
+    return out
+
+
+def mount_dual_blueprints(blueprints, *, name="core", prefix="/api",
+                          arms_group=None, import_name=None):
+    """Collapse the "mount every subpackage blueprint on a bare tree AND under a
+    prefix" pattern into one call. Returns ``(bare_bp, prefixed_bp)``:
+
+        core_bp, core_api_bp = mount_dual_blueprints(
+            [web_bp, brain_bp, ...], name="core", arms_group="hugpy.arms")
+
+    Each blueprint in ``blueprints`` (plus any Blueprint published to the
+    ``arms_group`` entry-point group, if given) is registered on BOTH parents, so
+    the whole surface is served bare (``/llm/...``) and under ``prefix``
+    (``/api/llm/...``). Expose the two returned blueprints at a routes module's top
+    level and ``get_Flask_app(routes=...)`` discovers and registers them."""
+    import_name = import_name or __name__
+    bare = Blueprint(name, import_name)
+    prefixed = Blueprint(f"{name}_api", import_name, url_prefix=prefix)
+    bps = list(blueprints or [])
+    if arms_group:
+        bps += load_entrypoint_blueprints(arms_group)
+    for bp in bps:
+        bare.register_blueprint(bp)
+        prefixed.register_blueprint(bp)
+    return bare, prefixed
 
 
 def _discover_blueprints(routes_module, url_prefix=None):
@@ -190,6 +258,8 @@ def get_Flask_app(*,
                   bp_list=None,
                   url_prefix=None,
                   url_prefix_endpoint_name=None,
+                  dual_prefix=None,
+                  arms_group=None,
                   allowed_origins=None,
                   supports_credentials=None,
                   debug=None,
@@ -206,6 +276,15 @@ def get_Flask_app(*,
             allowed_origins=["https://example.com"],
             supports_credentials=True,
         )
+
+    ``routes`` may be a module whose top-level ``*_bp`` Blueprints are discovered,
+    or a nested route dictionary. A dictionary is registered on one blueprint.
+
+    ``dual_prefix`` (e.g. ``"/api"``) additionally mounts every discovered (and
+    arm) blueprint a SECOND time under that prefix, so the whole surface is served
+    bare AND under the prefix without a hand-rolled aggregator.
+    ``arms_group`` (e.g. ``"hugpy.arms"``) also mounts every Blueprint published to
+    that entry-point group (each guarded), on both trees when ``dual_prefix`` is set.
     """
     # --- name: fall back to caller's __name__ ---
     if name is None:
@@ -213,7 +292,13 @@ def get_Flask_app(*,
 
     # --- blueprints: discover from routes module when bp_list not given ---
     if routes is not None and bp_list is None:
-        bp_list = _discover_blueprints(routes, url_prefix)
+        if isinstance(routes, dict):
+            from .generator.generateFlaskRoute import register_categories
+            schema_bp, _ = get_bp(name, name)
+            register_categories(schema_bp, routes)
+            bp_list = [(schema_bp, f"/{url_prefix}/")] if url_prefix else [schema_bp]
+        else:
+            bp_list = _discover_blueprints(routes, url_prefix)
 
     app = Flask(name, **flask_kwargs)
     if debug is not None:
@@ -222,8 +307,25 @@ def get_Flask_app(*,
                 supports_credentials=supports_credentials)
     _attach_audit_log(app, name=name)
     _register_blueprints(app, bp_list)
-    _add_endpoint_inspector(app, prefix=url_prefix)
+
+    def _mount_second(bp):
+        app.register_blueprint(bp, url_prefix=dual_prefix, name=f"{bp.name}_api")
+
+    if dual_prefix:
+        for entry in (bp_list or []):
+            _mount_second(entry[0] if isinstance(entry, tuple) else entry)
+    if arms_group:
+        for bp in load_entrypoint_blueprints(arms_group):
+            app.register_blueprint(bp)
+            if dual_prefix:
+                _mount_second(bp)
+
+    _add_endpoint_inspector(app, prefix=url_prefix or (dual_prefix.strip("/") if dual_prefix else None))
     _add_prefix_inspector(app, endpoint_name=url_prefix_endpoint_name)
+    # Browser observability supplies X-Hugpy-Trace-Id per request.  Requests
+    # without that header remain completely uninstrumented.
+    from .execution_trace import install_execution_trace
+    install_execution_trace(app)
 
     return app
 
