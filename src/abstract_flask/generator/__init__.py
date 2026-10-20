@@ -1,5 +1,6 @@
 from .generateFlaskRoute import *
 from .help_utils import *
+from .categories import *
 try:  # aiohttp support is optional — present only when aiohttp is installed
     from .aiohttp_routes import (
         get_aiohttp_app,

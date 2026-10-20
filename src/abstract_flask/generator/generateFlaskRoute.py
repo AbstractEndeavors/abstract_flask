@@ -1,4 +1,4 @@
-import ast,inspect,asyncio
+import ast,inspect,asyncio,re
 from pathlib import Path
 from typing import Iterable, List, Optional, Dict, Callable
 from flask import Blueprint,request,jsonify,Response
@@ -42,6 +42,18 @@ def read_text(p: Path) -> str:
 # Endpoint Variant Builder
 # ============================================================
 
+_PARAM = re.compile(r"<(?:[^:<>]+:)?([^<>]+)>")
+
+
+def endpoint_name(category: str, route_name: str = "") -> str:
+    """A Flask endpoint name for a category leaf: ``category_route``; URL
+    converters ``<int:tid>`` / ``<path:key>`` collapse to the bare parameter
+    name (``tid`` / ``key``) and dots become underscores (Flask forbids '.').
+    Slashes from nested categories are kept, as they always were."""
+    base = f"{category}_{route_name}" if category and route_name else (category or route_name or "index")
+    return _PARAM.sub(r"\1", base).replace(".", "_")
+
+
 def get_endpoints_ls(category: str, route_name: str, methods=None):
     """
     Build a pair of endpoint definitions:
@@ -59,8 +71,9 @@ def get_endpoints_ls(category: str, route_name: str, methods=None):
         base_endpoint = f"{category}_{route_name}" if category else f"{route_name}"
         base_rule = f"/{category}/{route_name}" if category else f"/{route_name}"
     # Flask endpoint names may not contain '.'; the URL keeps the dot. This lets
-    # dotted route names like `install.sh` ride the convention.
-    base_endpoint = base_endpoint.replace(".", "_")
+    # dotted route names like `install.sh` ride the convention. A ``<param>``
+    # segment (path identity declared in the tree) keeps only its bare name.
+    base_endpoint = _PARAM.sub(r"\1", base_endpoint).replace(".", "_")
 
     # Two variants: plain and slash
     endpoints_js = {
@@ -112,7 +125,7 @@ def _register_spec(bp, category, route_name, spec):
     native Flask response semantics without a second blueprint mechanism.
     """
     allowed = {"view", "rule", "rules", "methods", "inputs", "response", "endpoint",
-               "strict_slashes"}
+               "strict_slashes", "_shared_path"}
     unknown = set(spec) - allowed
     if unknown or not callable(spec.get("view")):
         raise ValueError(f"invalid route spec at {category}/{route_name}: {sorted(unknown)}")
@@ -133,7 +146,11 @@ def _register_spec(bp, category, route_name, spec):
         rules = [rules]
     if not rules or any(not isinstance(rule, (str, dict)) for rule in rules):
         raise ValueError("route rules must be absolute Flask URL rules")
-    endpoint = spec.get("endpoint") or (category + "_" + route_name).strip("_").replace("/", "_").replace(".", "_")
+    endpoint = spec.get("endpoint") or endpoint_name(category, route_name).strip("_").replace("/", "_")
+    if spec.get("_shared_path") and not spec.get("endpoint"):
+        # Several specs on one path (a list leaf): each needs its own endpoint
+        # name, so the methods it answers become the suffix (…_get, …_post).
+        endpoint += "_" + "_".join(m.lower() for m in methods)
 
     def arguments(path_values):
         if inputs == "path":
@@ -187,8 +204,9 @@ def register_route(bp: Blueprint, category: str, route_name: str, func: Callable
 
     is_async = inspect.iscoroutinefunction(func)
     helper_funcs = helper_funcs or []
-    async def async_route_func(*_, **__):
+    async def async_route_func(*_, **path_values):
         data = get_request_datas(request)
+        data.update(path_values)  # a ``<param>`` key in the tree feeds the same-named kwarg
         help_offered = offer_help(func, *helper_funcs, data=data, req=request)
 
         if help_offered:
@@ -214,8 +232,9 @@ def register_route(bp: Blueprint, category: str, route_name: str, func: Callable
             logger.exception(f"Error in {category}/{route_name}")
             return jsonify({"error": str(e)}), 500
 
-    def sync_route_func(*_, **__):
+    def sync_route_func(*_, **path_values):
         data = get_request_datas(request)
+        data.update(path_values)  # a ``<param>`` key in the tree feeds the same-named kwarg
         help_offered = offer_help(func, *helper_funcs, data=data, req=request)
 
         if help_offered:
@@ -267,6 +286,14 @@ def flatten_categories(categories, _prefix: str = ""):
         key = str(key).strip("/")
         if callable(value) or isinstance(value, dict) and "view" in value:
             yield _prefix, key, value
+        elif isinstance(value, (list, tuple)):
+            # Several specs on ONE path (e.g. GET list + POST create on the same
+            # URL): each entry is a spec leaf for this key.
+            for i, spec in enumerate(value):
+                if not (isinstance(spec, dict) and "view" in spec):
+                    where = f"{_prefix}/{key}" if _prefix else key
+                    raise TypeError(f"category entry {where!r}[{i}] must be a route spec dict")
+                yield _prefix, key, {**spec, "_shared_path": True}
         elif isinstance(value, dict):
             path = f"{_prefix}/{key}" if _prefix else key
             yield from flatten_categories(value, path)

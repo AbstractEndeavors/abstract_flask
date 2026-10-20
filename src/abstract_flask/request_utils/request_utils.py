@@ -207,8 +207,12 @@ def get_request_data(req,default = {},force=True, silent=True,flat=True):
     # Nothing found
     return default
 def make_number(value):
-    """Convert to int/float if numeric."""
+    """Convert a numeric STRING to int/float. Values that already carry a type
+    (bool, int, float, None, containers) pass through untouched — a JSON
+    ``true`` must not become ``1`` on its way to a handler."""
     from ..imports import is_number
+    if not isinstance(value, str):
+        return value
     if is_number(value):
         if '.' in str(value):
             return float(value)

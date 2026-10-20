@@ -171,3 +171,40 @@ URL variables take precedence over submitted fields in `merged` input mode.
 
 An arm entry point in `arms_group` may export a route dictionary as well as a
 Blueprint. The factory creates and mounts its Blueprint automatically.
+
+### The tree is the path
+
+Absolute `rule`s are rarely needed: dict nesting *is* the URL, a `<param>` key
+(`<run_id>`, `<int:tid>`, `<path:key>`) is a path parameter, and the `""` key is
+a node's own index route. Path parameters reach plain callables and spec leaves
+alike as the same-named keyword argument, merged with the query/form/JSON body
+(the URL value wins). A list of specs on one key puts several method-specific
+views on one URL. `spec()` writes the leaf dict explicitly:
+
+```python
+from abstract_flask import register_categories, spec, merge_categories, describe_categories
+
+ALL_CATEGORIES = {"llm": {"benchmark": {
+    "runs": {
+        "": spec(benchmark_runs, "GET", response="native"),          # GET /llm/benchmark/runs
+        "<run_id>": spec(benchmark_run_get, "GET", response="native"),  # GET /llm/benchmark/runs/<run_id>
+    },
+    "run": spec(benchmark_run, "POST", response="native"),           # POST /llm/benchmark/run
+    "status": benchmark_status,                                       # GET+POST, {"result": ...}
+}}, "help": {"sessions": [                                            # one URL, two methods
+    spec(sessions_list, "GET", response="native"),
+    spec(sessions_start, "POST", response="native"),
+]}}
+register_categories(bp, ALL_CATEGORIES)
+```
+
+Handlers are plain functions: keyword arguments in, JSON-able data out
+(`(payload, status)` when a non-200 matters under `response="native"`). They
+never read `flask.request`; the registrar does that. Because every section of
+an app states its surface as such a tree, the sections compose:
+`merge_categories(a.ALL_CATEGORIES, b.ALL_CATEGORIES)` is the whole surface as
+one dict (two sections claiming the same leaf path is an error), and
+`describe_categories(tree)` renders it as a JSON catalog (`path`, `methods`,
+`kind`, `inputs`, `response`, `view`, `doc`, `params`) that another service can
+consume without Flask. Endpoint names drop the angle brackets and converters of
+path parameters (`llm_benchmark_runs_run_id`).
