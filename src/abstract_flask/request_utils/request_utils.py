@@ -214,9 +214,17 @@ def make_number(value):
     if not isinstance(value, str):
         return value
     if is_number(value):
-        if '.' in str(value):
-            return float(value)
-        return int(value)
+        import math
+        try:
+            return int(value)
+        except (ValueError, OverflowError):
+            try:
+                number = float(value)
+            except (ValueError, OverflowError):
+                return value
+            # Keep non-finite input available for the handler's validation.
+            # It must not raise here or turn an invalid field into HTTP 500.
+            return number if math.isfinite(number) else value
     return value
 def get_request_datas(req):
     """Wrapper that converts numeric fields. Also unwraps the MCP-bridge

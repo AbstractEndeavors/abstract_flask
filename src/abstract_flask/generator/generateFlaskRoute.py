@@ -2,6 +2,7 @@ import ast,inspect,asyncio,re
 from pathlib import Path
 from typing import Iterable, List, Optional, Dict, Callable
 from flask import Blueprint,request,jsonify,Response
+from werkzeug.exceptions import HTTPException
 from .help_utils import offer_help
 from ..request_utils import get_request_data,get_request_datas,make_number
 from ..imports import is_number,get_logFile,prune_inputs
@@ -228,6 +229,8 @@ def register_route(bp: Blueprint, category: str, route_name: str, func: Callable
 
             return jsonify({"result": response}), 200
 
+        except HTTPException as e:
+            return jsonify({"error": e.description}), e.code or 500
         except Exception as e:
             logger.exception(f"Error in {category}/{route_name}")
             return jsonify({"error": str(e)}), 500
@@ -254,6 +257,8 @@ def register_route(bp: Blueprint, category: str, route_name: str, func: Callable
 
             return jsonify({"result": response}), 200
 
+        except HTTPException as e:
+            return jsonify({"error": e.description}), e.code or 500
         except Exception as e:
             logger.exception(f"Error in {category}/{route_name}")
             return jsonify({"error": str(e)}), 500
