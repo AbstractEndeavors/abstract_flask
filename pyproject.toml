@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "abstract-flask"
-version = "0.0.0.1074"
+version = "0.0.0.1075"
 description = "A composable toolkit for standing up Flask APIs without repeating yourself."
 readme = "README.md"
 requires-python = ">=3.6"

@@ -1,7 +1,5 @@
 # abstract_flask
 
-The staged bundle provides `ops.sh ACTION [--plan]` and `scripts/*.sh` for local Python installs and PyPI/GitHub push paths. Its Python source and `pyproject.toml` are at this directory's root.
-
 A composable toolkit for standing up Flask APIs without repeating yourself. Handles blueprint discovery, CORS, request parsing, endpoint introspection, and route generation — so the only code you write is the code that matters.
 
 ## Install
